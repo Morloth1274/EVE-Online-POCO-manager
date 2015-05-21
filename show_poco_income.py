@@ -14,13 +14,39 @@ char_wallet = char.wallet_journal()
 
 total_spend = 0
 
-for wallet in char_wallet:
-	if isinstance(wallet, list):
-		for wallet_entry in wallet:
-			isk = wallet_entry["amount"]
-			if isk < 0:
-				total_spend += isk
-print "Total ISK spend: ", "{:,}".format(total_spend)
+earliest_id = None
+earliest_entry = None
+
+handled_journal_ids = []
+found_new_entry = True
+while found_new_entry:
+	found_new_entry = False
+	for wallet in char_wallet:
+		if isinstance(wallet, list):
+			for wallet_entry in wallet:
+				isk = wallet_entry["amount"]
+				if isk < 0:
+					total_spend += isk
+
+				if isinstance(wallet_entry, dict):
+					journal_id = wallet_entry["id"]
+
+					if journal_id in handled_journal_ids:
+						continue
+					handled_journal_ids.append(journal_id)
+
+					timestamp = wallet_entry["timestamp"]
+					ts = datetime.fromtimestamp(timestamp)
+
+					found_new_entry = True
+					if earliest_id is None or earliest_id > journal_id:
+						earliest_id = journal_id
+						earliest_entry = wallet_entry
+
+
+	#print "Earliest entry: ", earliest_entry, "\n"
+	char_wallet = char.wallet_journal(earliest_id)
+
 
 #print dir(response.result)
 
@@ -131,3 +157,5 @@ for key,value in reversed(sorted_dict):
 	print "{0:<20} {1:>20} {2:>20} {3:>20} {4:>20} {5:>20}".format(key, pocos_per_system[key],  "{:,.2f}".format(value), "{:,.2f}".format(isk_per_day), days_active, "%.0f" % get_even_point)
 
 
+print "Total ISK spend: ", "{:,}".format(total_spend)
+print "ISK spend per POCO: ", "{:,}".format(isk_spend_per_poco)
